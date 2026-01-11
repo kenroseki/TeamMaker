@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>バレーボール チーム分けメーカー</title>
+
+    <script
+      crossorigin
+      src="https://unpkg.com/react@18/umd/react.production.min.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"
+    ></script>
+
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+      body {
+        overscroll-behavior-y: none;
+        -webkit-tap-highlight-color: transparent;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+      }
+      .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+      /* スクロールバー非表示 */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-slate-100 text-slate-800 h-screen overflow-hidden"
+    style="height: 100dvh"
+  >
+    <div id="root" class="h-full"></div>
+
+    <script type="text/babel">
+      const { useState, useEffect, useMemo } = React;
+
+      // --- Icons ---
+      const IconUsers = ({ size = 20, className = "" }) => (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+      );
+      const IconUser = ({ size = 20, fill = "none", className = "" }) => (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill={fill}
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      );
+      const IconUserPlus = ({ size = 20, className = "" }) => (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="8.5" cy="7" r="4" />
+          <line x1="20" y1="8" x2="20" y2="14" />
+          <line x1="23" y1="11" x2="17" y2="11" />
+        </svg>
+      );
+      const IconTrash = ({ size = 20, className = "" }) => (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+        </svg>
+      );
+      const IconEdit = ({ size = 20, className = "" }) => (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+        </svg>
+      );
+      const IconCheck = ({ size = 20, className = "" }) => (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      );
+      const IconShuffle = ({ size = 20, className = "" }) => (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <polyline points="16 3 21 3 21 8" />
+          <line x1="4" y1="20" x2="21" y2="3" />
+          <polyline points="21 16 21 21 16 21" />
+          <line x1="15" y1="15" x2="21" y2="21" />
+          <line x1="4" y1="4" x2="9" y2="9" />
+        </svg>
+      );
+      const IconShare = ({ size = 20, className = "" }) => (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <circle cx="18" cy="5" r="3" />
+          <circle cx="6" cy="12" r="3" />
+          <circle cx="18" cy="19" r="3" />
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+        </svg>
+      );
+      const IconSettings = ({ size = 20, className = "" }) => (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+      );
+      const IconStar = ({ size = 20, fill = "none", className = "" }) => (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill={fill}
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+        </svg>
+      );
+      const IconRefresh = ({ size = 20, className = "" }) => (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <polyline points="23 4 23 10 17 10" />
+          <polyline points="1 20 1 14 7 14" />
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+        </svg>
+      );
+      const IconEye = ({ size = 20, className = "" }) => (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      );
+      const IconEyeOff = ({ size = 20, className = "" }) => (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+          <line x1="1" y1="1" x2="23" y2="23" />
+        </svg>
+      );
+
+      // --- Constants & Utilities ---
+      const LEVELS = [1, 2, 3, 4, 5];
+      const GENDERS = [
+        {
+          id: "male",
+          label: "男性",
+          color: "text-blue-600",
+          bg: "bg-blue-600",
+        },
+        {
+          id: "female",
+          label: "女性",
+          color: "text-pink-600",
+          bg: "bg-pink-600",
+        },
+      ];
+
+      // 配列をシャッフルする関数
+      const shuffleArray = (array) => {
+        const arr = [...array];
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+      };
+
+      // --- UI Components ---
+      const Toggle = ({ label, checked, onChange }) => (
+        <div
+          className="flex items-center justify-between py-2 cursor-pointer"
+          onClick={() => onChange(!checked)}
+        >
+          <span className="text-sm font-bold text-slate-600 select-none">
+            {label}
+          </span>
+          <div
+            className={`w-11 h-6 rounded-full transition-colors relative ${
+              checked ? "bg-indigo-500" : "bg-slate-300"
+            }`}
+          >
+            <div
+              className={`w-4 h-4 bg-white rounded-full shadow absolute top-1 transition-transform ${
+                checked ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </div>
+        </div>
+      );
+
+      // --- Main App Component ---
+      function App() {
+        // State: Data
+        const [members, setMembers] = useState([]);
+        const [selectedIds, setSelectedIds] = useState(new Set());
+        const [teams, setTeams] = useState([]);
+        const [teamCount, setTeamCount] = useState(2);
+
+        // State: Options
+        const [options, setOptions] = useState({
+          genderBalance: true,
+          levelBalance: true,
+        });
+
+        // State: UI
+        const [activeTab, setActiveTab] = useState("select"); // 'manage', 'select', 'result'
+        const [isEditingId, setIsEditingId] = useState(null);
+        const [form, setForm] = useState({
+          name: "",
+          gender: "male",
+          level: 3,
+        });
+        const [copyStatus, setCopyStatus] = useState(false);
+        const [showLevels, setShowLevels] = useState(true); // 星表示トグル
+
+        // --- Effects ---
+        useEffect(() => {
+          const savedMembers = localStorage.getItem("volley_members");
+          if (savedMembers) {
+            setMembers(JSON.parse(savedMembers));
+          }
+        }, []);
+
+        useEffect(() => {
+          localStorage.setItem("volley_members", JSON.stringify(members));
+        }, [members]);
+
+        // --- Logic: Team Generation ---
+        const generateTeams = () => {
+          if (selectedIds.size === 0) return;
+
+          const presentMembers = members.filter((m) => selectedIds.has(m.id));
+          const baseCapacity = Math.floor(presentMembers.length / teamCount);
+          const remainder = presentMembers.length % teamCount;
+
+          let newTeams = Array.from({ length: teamCount }, (_, i) => ({
+            id: i,
+            players: [],
+            totalLevel: 0,
+            mCount: 0,
+            fCount: 0,
+            capacity: baseCapacity,
+            mCap: 0,
+            fCap: 0,
+          }));
+
+          newTeams = shuffleArray(newTeams);
+          for (let i = 0; i < remainder; i++) newTeams[i].capacity++;
+
+          if (options.genderBalance) {
+            const menCount = presentMembers.filter(
+              (m) => m.gender === "male"
+            ).length;
+            const womenCount = presentMembers.filter(
+              (m) => m.gender === "female"
+            ).length;
+
+            const mBase = Math.floor(menCount / teamCount);
+            const mRem = menCount % teamCount;
+            const fBase = Math.floor(womenCount / teamCount);
+            const fRem = womenCount % teamCount;
+
+            newTeams.forEach((t) => {
+              t.mCap = mBase;
+              t.fCap = fBase;
+            });
+
+            for (let i = 0; i < mRem; i++) newTeams[i].mCap++;
+
+            const sortedByCurrentCap = [...newTeams].sort(
+              (a, b) => a.mCap + a.fCap - (b.mCap + b.fCap)
+            );
+            for (let i = 0; i < fRem; i++) sortedByCurrentCap[i].fCap++;
+
+            newTeams.forEach((t) => {
+              t.capacity = t.mCap + t.fCap;
+            });
+          }
+
+          const distributeToTeams = (pool, genderType = null) => {
+            const sortedPool = shuffleArray([...pool]).sort(
+              (a, b) => b.level - a.level
+            );
+            sortedPool.forEach((player) => {
+              const candidates = newTeams.filter((t) => {
+                if (genderType === "male") return t.mCount < t.mCap;
+                if (genderType === "female") return t.fCount < t.fCap;
+                return t.players.length < t.capacity;
+              });
+
+              candidates.sort((a, b) =>
+                options.levelBalance ? a.totalLevel - b.totalLevel : 0
+              );
+
+              if (candidates.length > 0) {
+                const target = candidates[0];
+                target.players.push(player);
+                target.totalLevel += player.level;
+                if (player.gender === "male") target.mCount++;
+                else target.fCount++;
+              }
+            });
+          };
+
+          if (options.genderBalance) {
+            const men = presentMembers.filter((m) => m.gender === "male");
+            const women = presentMembers.filter((m) => m.gender === "female");
+            distributeToTeams(men, "male");
+            distributeToTeams(women, "female");
+          } else {
+            distributeToTeams(presentMembers);
+          }
+
+          newTeams.sort((a, b) => a.id - b.id);
+          setTeams(newTeams);
+          setActiveTab("result");
+        };
+
+        const copyResult = () => {
+          if (teams.length === 0) return;
+          const date = new Date().toLocaleDateString();
+          let text = `🏐 チーム分け (${date})\n\n`;
+          teams.forEach((team, i) => {
+            // 星非表示なら平均レベルも隠す
+            const avg = (team.totalLevel / (team.players.length || 1)).toFixed(
+              1
+            );
+            const headerInfo = showLevels
+              ? `(LvAvg:${avg} 男${team.mCount}:女${team.fCount})`
+              : `(男${team.mCount}:女${team.fCount})`;
+
+            text += `【チーム${String.fromCharCode(65 + i)}】 ${headerInfo}\n`;
+            team.players.forEach((p) => {
+              const icon = p.gender === "male" ? "🚹" : "🚺";
+              // 星非表示ならレベル数値も隠す
+              const playerInfo = showLevels
+                ? `(${icon}${p.level})`
+                : `(${icon})`;
+              text += `- ${p.name} ${playerInfo}\n`;
+            });
+            text += "\n";
+          });
+          const textarea = document.createElement("textarea");
+          textarea.value = text;
+          document.body.appendChild(textarea);
+          textarea.select();
+          try {
+            document.execCommand("copy");
+            setCopyStatus(true);
+            setTimeout(() => setCopyStatus(false), 2000);
+          } catch (e) {
+            alert("コピーに失敗しました");
+          }
+          document.body.removeChild(textarea);
+        };
+
+        const saveMember = (e) => {
+          e.preventDefault();
+          if (!form.name.trim()) return;
+          if (isEditingId) {
+            setMembers(
+              members.map((m) =>
+                m.id === isEditingId ? { ...form, id: m.id } : m
+              )
+            );
+            setIsEditingId(null);
+          } else {
+            const newMember = { ...form, id: Date.now().toString() };
+            setMembers([...members, newMember]);
+            setSelectedIds((prev) => new Set([...prev, newMember.id]));
+          }
+          setForm({ name: "", gender: "male", level: 3 });
+        };
+
+        const deleteMember = (id) => {
+          if (!confirm("削除しますか？")) return;
+          setMembers(members.filter((m) => m.id !== id));
+          setSelectedIds((prev) => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
+        };
+
+        const startEdit = (m) => {
+          setForm({ name: m.name, gender: m.gender, level: m.level });
+          setIsEditingId(m.id);
+        };
+
+        const toggleSelect = (id) => {
+          const newSet = new Set(selectedIds);
+          if (newSet.has(id)) newSet.delete(id);
+          else newSet.add(id);
+          setSelectedIds(newSet);
+        };
+
+        const toggleSelectAll = () => {
+          setSelectedIds(
+            selectedIds.size === members.length
+              ? new Set()
+              : new Set(members.map((m) => m.id))
+          );
+        };
+
+        const renderStars = (count) => (
+          <div className="flex text-yellow-400">
+            {[...Array(count)].map((_, i) => (
+              <IconStar key={i} size={10} fill="currentColor" />
+            ))}
+          </div>
+        );
+
+        // --- VIEW RENDERERS ---
+        const renderManageView = () => (
+          <div className="h-full overflow-y-auto no-scrollbar p-4 pb-24">
+            <div className="space-y-6">
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <h3 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                  {isEditingId ? (
+                    <IconEdit size={18} />
+                  ) : (
+                    <IconUserPlus size={18} />
+                  )}
+                  {isEditingId ? "メンバー編集" : "メンバー登録"}
+                </h3>
+                <form onSubmit={saveMember} className="space-y-3">
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    placeholder="名前 (例: 田中)"
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    required
+                  />
+                  <div className="flex gap-2">
+                    <div className="flex-1 bg-slate-50 rounded-lg p-1 flex">
+                      {GENDERS.map((g) => (
+                        <button
+                          key={g.id}
+                          type="button"
+                          onClick={() => setForm({ ...form, gender: g.id })}
+                          className={`flex-1 py-2 rounded-md text-sm font-bold transition-all ${
+                            form.gender === g.id
+                              ? "bg-white shadow-sm " + g.color
+                              : "text-slate-400"
+                          }`}
+                        >
+                          {g.label}
+                        </button>
+                      ))}
+                    </div>
+                    <select
+                      value={form.level}
+                      onChange={(e) =>
+                        setForm({ ...form, level: Number(e.target.value) })
+                      }
+                      className="w-20 p-2 bg-slate-50 border border-slate-200 rounded-lg text-center font-bold text-slate-700"
+                    >
+                      {LEVELS.map((l) => (
+                        <option key={l} value={l}>
+                          Lv.{l}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    {isEditingId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditingId(null);
+                          setForm({ name: "", gender: "male", level: 3 });
+                        }}
+                        className="px-4 py-2 bg-slate-200 text-slate-600 rounded-lg font-bold text-sm"
+                      >
+                        中止
+                      </button>
+                    )}
+                    <button
+                      type="submit"
+                      className="flex-1 py-2 bg-indigo-600 text-white rounded-lg font-bold shadow hover:bg-indigo-700 transition-colors"
+                    >
+                      {isEditingId ? "更新" : "登録"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <div>
+                <div className="text-xs font-bold text-slate-500 mb-2 px-2">
+                  登録済み: {members.length}人
+                </div>
+                {members.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
+                    まだメンバーがいません
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {members.map((m) => (
+                      <div
+                        key={m.id}
+                        className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-100 shadow-sm"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0 ${
+                              m.gender === "male"
+                                ? "bg-blue-600"
+                                : "bg-pink-600"
+                            }`}
+                          >
+                            <IconUser
+                              size={16}
+                              fill="currentColor"
+                              className="opacity-90"
+                            />
+                          </div>
+                          <div>
+                            <div className="font-bold text-slate-700 leading-tight">
+                              {m.name}
+                            </div>
+                            <div className="flex items-center gap-1 text-xs text-slate-400 mt-0.5">
+                              <span>Lv.{m.level}</span>
+                              {renderStars(m.level)}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => startEdit(m)}
+                            className="p-2 text-slate-300 hover:text-indigo-500"
+                          >
+                            <IconEdit size={16} />
+                          </button>
+                          <button
+                            onClick={() => deleteMember(m.id)}
+                            className="p-2 text-slate-300 hover:text-red-500"
+                          >
+                            <IconTrash size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+
+        const renderSelectionView = () => (
+          <div className="h-full flex flex-col relative p-4">
+            <div className="flex justify-between items-center mb-3 px-1 shrink-0">
+              <div className="font-bold text-slate-700">
+                <span className="text-indigo-600 text-xl mr-1">
+                  {selectedIds.size}
+                </span>
+                人 参加
+              </div>
+              <button
+                onClick={toggleSelectAll}
+                className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full"
+              >
+                {selectedIds.size === members.length ? "全解除" : "全員選択"}
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto no-scrollbar pb-48 -mx-4 px-4">
+              <div className="space-y-2">
+                {members.length === 0 && (
+                  <div className="text-center py-10 text-slate-400">
+                    メンバー管理タブで
+                    <br />
+                    メンバーを登録してください
+                  </div>
+                )}
+                {members.map((m) => {
+                  const isSelected = selectedIds.has(m.id);
+                  return (
+                    <div
+                      key={m.id}
+                      onClick={() => toggleSelect(m.id)}
+                      className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
+                        isSelected
+                          ? "bg-indigo-50 border-indigo-200 shadow-sm"
+                          : "bg-white border-slate-100"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-5 h-5 rounded flex items-center justify-center border shrink-0 ${
+                            isSelected
+                              ? "bg-indigo-500 border-indigo-500 text-white"
+                              : "border-slate-300 bg-slate-100 text-transparent"
+                          }`}
+                        >
+                          <IconCheck size={14} strokeWidth={4} />
+                        </div>
+                        <div>
+                          <div
+                            className={`font-bold ${
+                              isSelected ? "text-indigo-900" : "text-slate-600"
+                            }`}
+                          >
+                            {m.name}
+                          </div>
+                          <div className="flex items-center text-xs text-slate-400">
+                            <span
+                              className={`mr-1 ${
+                                m.gender === "male"
+                                  ? "text-blue-500"
+                                  : "text-pink-500"
+                              }`}
+                            >
+                              ●
+                            </span>
+                            Lv.{m.level}
+                          </div>
+                        </div>
+                      </div>
+                      {renderStars(m.level)}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur border border-slate-200 p-4 rounded-2xl shadow-xl flex flex-col gap-3 z-10">
+              {/* Options */}
+              <div className="bg-slate-50 rounded-lg p-2 px-3 border border-slate-100 grid grid-cols-2 gap-4">
+                <Toggle
+                  label="男女比を均等に"
+                  checked={options.genderBalance}
+                  onChange={(val) =>
+                    setOptions({ ...options, genderBalance: val })
+                  }
+                />
+                <Toggle
+                  label="レベル差を均す"
+                  checked={options.levelBalance}
+                  onChange={(val) =>
+                    setOptions({ ...options, levelBalance: val })
+                  }
+                />
+              </div>
+
+              {/* Controls */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold text-slate-500">
+                  チーム数 (コート数)
+                </span>
+                <div className="flex items-center bg-slate-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setTeamCount(Math.max(2, teamCount - 1))}
+                    className="w-8 h-8 flex items-center justify-center font-bold text-indigo-600 bg-white rounded shadow-sm"
+                  >
+                    -
+                  </button>
+                  <span className="w-10 text-center font-bold text-slate-700">
+                    {teamCount}
+                  </span>
+                  <button
+                    onClick={() => setTeamCount(teamCount + 1)}
+                    className="w-8 h-8 flex items-center justify-center font-bold text-indigo-600 bg-white rounded shadow-sm"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <button
+                onClick={generateTeams}
+                disabled={selectedIds.size < 2}
+                className="w-full py-3.5 bg-indigo-600 disabled:bg-slate-300 text-white rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 hover:bg-indigo-700 transition-transform active:scale-95"
+              >
+                <IconShuffle size={20} />
+                チーム分け実行
+              </button>
+            </div>
+          </div>
+        );
+
+        const renderResultView = () => (
+          <div className="h-full flex flex-col overflow-y-auto no-scrollbar pb-24 p-4">
+            <div className="flex justify-between items-center mb-4 sticky top-0 bg-slate-100 py-2 z-10 shadow-sm -mx-2 px-2">
+              <h2 className="text-xl font-bold text-slate-800 pl-2">
+                結果発表
+              </h2>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowLevels(!showLevels)}
+                  className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${
+                    showLevels
+                      ? "text-slate-400 hover:bg-slate-200"
+                      : "bg-indigo-100 text-indigo-600"
+                  }`}
+                >
+                  {showLevels ? (
+                    <IconEye size={20} />
+                  ) : (
+                    <IconEyeOff size={20} />
+                  )}
+                </button>
+                <button
+                  onClick={copyResult}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                    copyStatus
+                      ? "bg-emerald-500 text-white"
+                      : "bg-white text-indigo-600 border border-indigo-100 shadow-sm"
+                  }`}
+                >
+                  {copyStatus ? (
+                    <IconCheck size={16} />
+                  ) : (
+                    <IconShare size={16} />
+                  )}
+                  {copyStatus ? "コピー完了" : "コピー"}
+                </button>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              {teams.map((t, i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"
+                >
+                  <div className="bg-slate-50 border-b border-slate-100 p-3 flex justify-between items-center">
+                    <div className="font-bold text-lg text-slate-700">
+                      チーム {String.fromCharCode(65 + i)}
+                    </div>
+                    <div className="text-xs font-semibold text-slate-500 flex gap-2">
+                      {showLevels && (
+                        <span className="bg-white px-2 py-0.5 rounded border border-slate-200">
+                          Avg:{" "}
+                          {(t.totalLevel / (t.players.length || 1)).toFixed(1)}
+                        </span>
+                      )}
+                      <span className="text-blue-600">男:{t.mCount}</span>
+                      <span className="text-pink-600">女:{t.fCount}</span>
+                    </div>
+                  </div>
+                  <div className="p-2">
+                    {t.players.map((p) => (
+                      <div
+                        key={p.id}
+                        className="flex items-center justify-between p-2 border-b border-slate-50 last:border-0"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`flex items-center justify-center w-8 h-8 rounded-full shrink-0 ${
+                              p.gender === "male"
+                                ? "bg-blue-100 text-blue-600"
+                                : "bg-pink-100 text-pink-600"
+                            }`}
+                          >
+                            <IconUser
+                              size={18}
+                              fill="currentColor"
+                              className="opacity-90"
+                            />
+                          </div>
+                          <span className="font-bold text-slate-700">
+                            {p.name}
+                          </span>
+                        </div>
+                        {showLevels && (
+                          <div className="opacity-40">
+                            {renderStars(p.level)}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-8 px-4 flex flex-col gap-3">
+              <button
+                onClick={generateTeams}
+                className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-md flex items-center justify-center gap-2 transition-transform active:scale-95"
+              >
+                <IconRefresh size={18} />
+                再シャッフル
+              </button>
+              <button
+                onClick={() => setActiveTab("select")}
+                className="w-full py-3 border-2 border-dashed border-slate-300 text-slate-400 rounded-xl font-bold hover:bg-white hover:text-slate-600 hover:border-slate-400 transition-all"
+              >
+                条件を変えて再作成
+              </button>
+            </div>
+          </div>
+        );
+
+        // --- Layout ---
+        return (
+          <div className="h-full flex flex-col max-w-md mx-auto bg-slate-100 shadow-2xl relative">
+            <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-center shrink-0">
+              <h1 className="font-bold text-slate-700 flex items-center gap-2">
+                <span className="bg-indigo-600 text-white p-1 rounded">
+                  <IconUsers size={16} />
+                </span>
+                Volley Team Maker
+              </h1>
+            </header>
+
+            <main className="flex-1 overflow-hidden relative">
+              {activeTab === "manage" && renderManageView()}
+              {activeTab === "select" && renderSelectionView()}
+              {activeTab === "result" && renderResultView()}
+            </main>
+
+            <nav className="bg-white border-t border-slate-200 grid grid-cols-3 shrink-0 pb-safe z-20">
+              <button
+                onClick={() => setActiveTab("select")}
+                className={`flex flex-col items-center justify-center py-2 ${
+                  activeTab === "select" ? "text-indigo-600" : "text-slate-300"
+                }`}
+              >
+                <IconCheck
+                  size={24}
+                  strokeWidth={activeTab === "select" ? 2.5 : 2}
+                />
+                <span className="text-[10px] font-bold mt-1">参加選択</span>
+              </button>
+              <button
+                onClick={() => setActiveTab("manage")}
+                className={`flex flex-col items-center justify-center py-2 ${
+                  activeTab === "manage" ? "text-indigo-600" : "text-slate-300"
+                }`}
+              >
+                <IconSettings
+                  size={24}
+                  strokeWidth={activeTab === "manage" ? 2.5 : 2}
+                />
+                <span className="text-[10px] font-bold mt-1">設定・登録</span>
+              </button>
+              <button
+                onClick={() => teams.length > 0 && setActiveTab("result")}
+                disabled={teams.length === 0}
+                className={`flex flex-col items-center justify-center py-2 ${
+                  activeTab === "result"
+                    ? "text-indigo-600"
+                    : teams.length > 0
+                    ? "text-slate-400"
+                    : "text-slate-200"
+                }`}
+              >
+                <IconUsers
+                  size={24}
+                  strokeWidth={activeTab === "result" ? 2.5 : 2}
+                />
+                <span className="text-[10px] font-bold mt-1">結果</span>
+              </button>
+            </nav>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<App />);
+    </script>
+  </body>
+</html>
